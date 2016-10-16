@@ -1,0 +1,61 @@
+<html>
+    <h2>first game run through</h2>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+// handle/reference to the information on our display area
+var canvas;
+// Canvas's underlying information where we draw shapes to
+var canvasContext;
+var ballSpeedX = 5;
+var ballModel = makeCircleModel(50, 250, 10, 'red' );
+var playerPad = makeRectModel(0, 200, 10, 100, 'white');
+var boardModel; 
+//onload runs only after everything on the page has finished loading
+window.onload = function(){
+    console.log('game start');
+    //draw order matters, the later draw calls will cover the earlier draw calls
+    canvas = document.getElementById('gameCanvas');
+    canvasContext = canvas.getContext('2d');
+    boardModel = makeRectModel(0,0,canvas.width, canvas.height, 'black');
+    var framesPerSecond = 60;
+    setInterval(function(){moveEverything(); drawEverything()}, 1000/framesPerSecond);
+    //setInterval(drawEverything, 16);
+}
+
+function moveEverything(){
+    ballModel.x += ballSpeedX;
+    if(ballModel.x >= (canvas.width-ballModel.radius) || ballModel.x <=ballModel.radius){
+        ballSpeedX *= -1;
+    }
+}
+
+function drawEverything(){    
+    drawRectModel(boardModel);
+    drawRectModel(playerPad);
+    drawCircleModel(ballModel);
+}
+
+function drawCircleModel(model){
+    canvasContext.fillStyle = 'red';
+    canvasContext.beginPath();
+    canvasContext.arc(ballModel.x, ballModel.y, ballModel.radius, 0, Math.PI*2, true);
+    canvasContext.fill();
+}
+
+function drawRectModel(model){
+    canvasContext.fillStyle = model.color;
+    canvasContext.fillRect(model.x, model.y, model.width, model.height);
+}
+
+function makeRectModel(x,y, width, height, color){
+    return {x:x, y:y, width: width, height: height, color: color};
+}
+
+function makeCircleModel(x,y, radius, color){
+    return {x:x, y:y,radius:radius, color: color};
+}
+</script>
+
+</html>
