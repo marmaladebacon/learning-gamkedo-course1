@@ -10,26 +10,45 @@ var canvas;
 var canvasContext;
 var ballSpeedX = 5;
 var ballSpeedY = 4;
+var PAD_THICKNESS = 10;
 var ballModel = makeCircleModel(50, 250, 10, 'red' );
-var playerLeftPad = makeRectModel(0, 200, 10, 100, 'white');
-var playerRightPad = makeRectModel(0, 200, 10, 100, 'white');
+
+var playerLeftScore = 0;
+var playerRightScore = 0;
+const WINNING_SCORE = 3;
+var showWinScreen = false;
+
+var playerLeftPad = makeRectModel(0, 200, PAD_THICKNESS, 100, 'white');
+var playerRightPad;// = makeRectModel(0, 200, PAD_THICKNESS, 100, 'white');
 var boardModel; 
 //var mousePos = {x:0, y:0};
+
+function handleMouseClick(evt){
+    if(showWinScreen){
+        playerLeftScore = 0;
+        playerRightScore = 0;
+        showWinScreen = false;
+    }
+}
+
 //onload runs only after everything on the page has finished loading
 window.onload = function(){
     console.log('game start');
     //draw order matters, the later draw calls will cover the earlier draw calls
     canvas = document.getElementById('gameCanvas');
     canvasContext = canvas.getContext('2d');
-    playerRightPad = makeRectModel(canvas.width-10, 200, 10, 100, 'cyan');
+    playerRightPad = makeRectModel(canvas.width-PAD_THICKNESS, 200, PAD_THICKNESS, 100, 'cyan');
     boardModel = makeRectModel(0,0,canvas.width, canvas.height, 'black');
     var framesPerSecond = 60;
     setInterval(function(){moveEverything(); drawEverything()}, 1000/framesPerSecond);
     canvas.addEventListener('mousemove', function(evt){
         var mPos = calculateMousePos(evt);
-        playerLeftPad.y = mPos.y - playerLeftPad.height/2; 
+        playerLeftPad.y = mPos.y - playerLeftPad.height/2;
+        //for debuggin only
+        //playerRightPad.y = mPos.y - playerRightPad.height/2; 
     })
-    //setInterval(drawEverything, 16);
+    canvas.addEventListener('mousedown', handleMouseClick);
+    
 }
 //Should be callled everytime the mouse moves
 function calculateMousePos(evt){
@@ -47,37 +66,81 @@ function calculateMousePos(evt){
 function resetBall(){
     ballModel.x = canvas.width/2;
     ballModel.y = canvas.height/2;
+    ballSpeedX = 5;
+    ballSpeedY = 4;
+    if(playerLeftScore >= WINNING_SCORE || playerRightScore >= WINNING_SCORE){
+        showWinScreen = true;
+    }
+    
+    
 }
 
 function moveEverything(){
+    if(showWinScreen){
+        return;
+    }
+
     ballModel.x += ballSpeedX;
     ballModel.y += ballSpeedY;
+    var deltaFromCenterOfPad;
     if( ballModel.x <=ballModel.radius ){
         if(ballModel.y > playerLeftPad.y && ballModel.y<(playerLeftPad.y + playerLeftPad.height )){
             ballSpeedX *= -1;
+            deltaFromCenterOfPad = ballModel.y - (playerLeftPad.y + playerLeftPad.height/2);
+            ballSpeedY = deltaFromCenterOfPad * 0.35; 
+            console.log(ballSpeedY);
         }else{
-            resetBall();    
+            playerRightScore++;
+            resetBall();                
         }                
     }
 
     if(ballModel.x >= (canvas.width-ballModel.radius)){
-        ballSpeedX *= -1;
+        //ballSpeedX *= -1;
         if(ballModel.y > playerRightPad.y && ballModel.y<(playerRightPad.y + playerRightPad.height )){
             ballSpeedX *= -1;
+            deltaFromCenterOfPad = ballModel.y - (playerRightPad.y + playerRightPad.height/2);
+            ballSpeedY = deltaFromCenterOfPad * 0.35; 
         }else{
-            //resetBall();    
+            playerLeftScore++;
+            resetBall();            
         }                
     } 
     if(ballModel.y >= (canvas.height - ballModel.radius) || ballModel.y <=ballModel.radius){
         ballSpeedY *= -1;
     }
+    computerMovement();
+}
+
+function drawNet(){
+    for(var i = 0; i<canvas.height; i+= 40){
+        drawRectModel(makeRectModel( (canvas.width/2- 2), i, 4, 20) );
+    }
 }
 
 function drawEverything(){    
     drawRectModel(boardModel);
+    canvasContext.fillStyle = 'white';
+    canvasContext.fillText(playerLeftScore, 100, 100);
+    canvasContext.fillText(playerRightScore, canvas.width-100, 100);
+    if(showWinScreen){
+        if(playerLeftScore >= WINNING_SCORE){
+            canvasContext.fillStyle = 'white';
+            canvasContext.fillText('Left Player Won', canvas.width/2-50, 100);
+        } 
+        else if(playerRightScore >= WINNING_SCORE){
+            canvasContext.fillStyle = 'white';
+            canvasContext.fillText('Right Player Won', canvas.width/2-50, 100);
+        }
+        canvasContext.fillText('Click to continue', canvas.width/2-50, canvas.height /4 *3);
+        return;
+    }
+    drawNet();
     drawRectModel(playerLeftPad);
     drawRectModel(playerRightPad);
     drawCircleModel(ballModel);
+    
+    
 }
 
 function drawCircleModel(model){
@@ -90,6 +153,16 @@ function drawCircleModel(model){
 function drawRectModel(model){
     canvasContext.fillStyle = model.color;
     canvasContext.fillRect(model.x, model.y, model.width, model.height);
+}
+
+function computerMovement(){
+    var center = playerRightPad.y + playerRightPad.height/2;
+    
+    if(center < (ballModel.y - playerRightPad.height/4)){
+        playerRightPad.y +=6;
+    }else if(center > (ballModel.y + playerRightPad.height/4)){
+        playerRightPad.y -=6;
+    }
 }
 
 function makeRectModel(x,y, width, height, color){
